@@ -15,8 +15,8 @@ try { fs.unlinkSync(path.join(__dirname, 'fixtures', '.DS_Store')) } catch (e) {
 cleanDat() // make sure we start fresh
 
 test('prints link (live)', function (t) {
-  // cmd: dat tests/fixtures
-  var st = spawn(t, dat + ' ' + fixtures)
+  // cmd: dat share tests/fixtures
+  var st = spawn(t, dat + ' share ' + fixtures)
   st.stdout.match(function (output) {
     var matches = matchDatLink(output)
     if (!matches) return false
@@ -28,8 +28,8 @@ test('prints link (live)', function (t) {
 })
 
 test('prints link (static)', function (t) {
-  // cmd: dat tests/fixtures --snapshot
-  var st = spawn(t, dat + ' ' + fixtures + ' --snapshot')
+  // cmd: dat share tests/fixtures --snapshot
+  var st = spawn(t, dat + ' share ' + fixtures + ' --snapshot')
   st.stdout.match(function (output) {
     var matches = matchDatLink(output)
     if (!matches) return false
@@ -42,8 +42,8 @@ test('prints link (static)', function (t) {
 })
 
 test('static link consistent', function (t) {
-  // cmd: dat tests/fixtures --snapshot
-  var st = spawn(t, dat + ' ' + fixtures + ' --snapshot')
+  // cmd: dat share tests/fixtures --snapshot
+  var st = spawn(t, dat + ' share ' + fixtures + ' --snapshot')
   st.stdout.match(function (output) {
     var matches = matchDatLink(output)
     if (!matches) return false
@@ -56,9 +56,9 @@ test('static link consistent', function (t) {
 })
 
 test('share resume uses same key', function (t) {
-  // cmd: dat tests/fixtures (twice)
+  // cmd: dat share tests/fixtures (twice)
   var key = null
-  var st = spawn(t, dat + ' ' + fixtures)
+  var st = spawn(t, dat + ' share ' + fixtures)
   st.stdout.match(function (output) {
     var matches = matchDatLink(output)
     if (!matches) return false
@@ -69,7 +69,7 @@ test('share resume uses same key', function (t) {
   })
 
   function spawnAgain () {
-    var st = spawn(t, dat + ' ' + fixtures)
+    var st = spawn(t, dat + ' share ' + fixtures)
     st.stdout.match(function (output) {
       var matches = matchDatLink(output)
       if (!matches) return false
@@ -83,8 +83,8 @@ test('share resume uses same key', function (t) {
 })
 
 test('share prints shared directory', function (t) {
-  // cmd: dat tests/fixtures
-  var st = spawn(t, dat + ' ' + fixtures)
+  // cmd: dat share tests/fixtures
+  var st = spawn(t, dat + ' share ' + fixtures)
   st.stdout.match(function (output) {
     var contains = output.indexOf('Sharing') > -1
     if (!contains) return false
@@ -97,8 +97,8 @@ test('share prints shared directory', function (t) {
 })
 
 test('prints file information (live)', function (t) {
-  // cmd: dat tests/fixtures
-  var st = spawn(t, dat + ' ' + fixtures)
+  // cmd: dat share tests/fixtures
+  var st = spawn(t, dat + ' share ' + fixtures)
   st.stdout.match(function (output) {
     var finished = output.match('Added')
     if (!finished) return false
@@ -114,8 +114,8 @@ test('prints file information (live)', function (t) {
 })
 
 test('prints file information (snapshot)', function (t) {
-  // cmd: dat tests/fixtures --snapshot
-  var st = spawn(t, dat + ' ' + fixtures + ' --snapshot')
+  // cmd: dat share tests/fixtures --snapshot
+  var st = spawn(t, dat + ' share ' + fixtures + ' --snapshot')
   st.stdout.match(function (output) {
     var finished = output.match('Added')
     if (!finished) return false
@@ -131,8 +131,8 @@ test('prints file information (snapshot)', function (t) {
 })
 
 test('share with . arg defaults to cwd', function (t) {
-  // cmd: dat .
-  var st = spawn(t, dat + ' .', {cwd: fixtures})
+  // cmd: dat share .
+  var st = spawn(t, dat + ' share .', {cwd: fixtures})
   st.stdout.match(function (output) {
     var contains = output.indexOf('Sharing') > -1
     if (!contains) return false

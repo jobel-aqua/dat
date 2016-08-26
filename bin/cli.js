@@ -1,8 +1,5 @@
 #!/usr/bin/env node
 
-var fs = require('fs')
-var mkdirp = require('mkdirp')
-
 var args = require('minimist')(process.argv.splice(2), {
   alias: {p: 'port', q: 'quiet', v: 'version'},
   boolean: ['snapshot', 'exit', 'list', 'quiet', 'version', 'utp'],
@@ -26,55 +23,30 @@ if (args.version) {
   process.exit(0)
 }
 
-var isShare = false
-var isDownload = false
-
 args.logspeed = +args.logspeed
 if (isNaN(args.logspeed)) args.logspeed = 200
 
-if (args.doctor || !args._[0]) run()
-else getCommand()
+var command = args._.shift() // remove command arg so extensions can parse args like normal
+if (!command) require('../usage')('root.txt')
+else run()
 
 function run () {
-  if (args.doctor) require('./doctor')(args)
-  else if (isShare) require('../commands/share')(args)
-  else if (args.list && isDownload) require('../commands/list')(args)
-  else if (isDownload) require('../commands/download')(args)
-  else require('../usage')('root.txt')
-}
-
-function getCommand () {
-  if (args._[0].indexOf('dat://') > -1) args._[0] = args._[0].replace('dat://', '')
-  if (isDirectory(args._[0], true)) isShare = true
-  else if (isDatLink(args._[0])) isDownload = true
-  args.dir = isShare ? args._[0] : args._[1]
-  args.key = isDownload ? args._[0] : null
-
-  if (isShare) run()
-  else if (args.dir && isDownload && !isDirectory(args.dir, true)) mkdirp(args.dir, run)
-  else if (args.dir && isDownload) run()
-  else if (!args.dir) onerror('Directory required') // TODO: don't require for download
-  else onerror('Invalid Command') // Should never get here...
-}
-
-function isDatLink (val, quiet) {
-  // TODO: switch to using dat-encoding here
-  var isLink = (val.length === 50 || val.length === 64)
-  if (quiet || isLink) return isLink
-  onerror('Invalid Dat Link')
-}
-
-function isDirectory (val, quiet) {
-  try {
-    return fs.statSync(val).isDirectory() // TODO: support sharing single files
-  } catch (err) {
-    if (quiet) return false
-    onerror('Directory does not exist')
+  if (command === 'share') require('../commands/share')(args)
+  else if (command === 'download') require('../commands/download')(args)
+  else {
+    try {
+      require(`dat-${command}`)(args)
+    } catch (e) {
+      if (e.code !== 'MODULE_NOT_FOUND' || e.message.indexOf(`dat-${command}`) === -1) {
+        console.error('Extension Error:')
+        return onerror(e)
+      }
+      onerror(`dat extension ${command} not found. Make sure you have dat-${command} installed.`)
+    }
   }
 }
 
 function onerror (msg) {
-  console.error(msg + '\n')
+  console.error(msg)
   process.exit(1)
-  // require('../usage')('root.txt')
 }

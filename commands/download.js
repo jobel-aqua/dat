@@ -1,11 +1,26 @@
+var fs = require('fs')
 var chalk = require('chalk')
 var prettyBytes = require('pretty-bytes')
 var Dat = require('dat-js')
 var logger = require('status-logger')
 var speedometer = require('speedometer')
+var mkdirp = require('mkdirp')
 var ui = require('../lib/ui')
 
 module.exports = function (args) {
+  if (!args._[0]) {
+    console.error('Dat link required')
+    process.exit(1)
+  }
+  if (args._[0].indexOf('dat://') > -1) args._[0] = args._[0].replace('dat://', '')
+  if (isDatLink(args._[0])) args.key = args._[0] // Throws error if not valid
+
+  if (!args._[1]) return onerror('Directory required') // Until we ship hyperdrive name https://github.com/mafintosh/hyperdrive/issues/71
+  args.dir = args._[1]
+  try {
+    fs.statSync(args.dir).isDirectory()
+  } catch (e) { mkdirp(args.dir) }
+
   var dat = Dat(args)
   var log = logger(args)
 
@@ -81,6 +96,13 @@ module.exports = function (args) {
     msg += chalk.dim(' (' + prettyBytes(stats.bytesProgress) + '/' + prettyBytes(stats.bytesTotal) + ')')
     log.status(msg + '\n', 0)
   }
+}
+
+function isDatLink (val, quiet) {
+  // TODO: switch to using dat-encoding here
+  var isLink = (val.length === 50 || val.length === 64)
+  if (quiet || isLink) return isLink
+  onerror('Invalid Dat Link')
 }
 
 function onerror (err) {

@@ -14,8 +14,8 @@ var downloadDir = newTestFolder()
 try { fs.unlinkSync(path.join(__dirname, 'fixtures', '.DS_Store')) } catch (e) { /* ignore error */ }
 
 test('starts looking for peers with correct hash', function (t) {
-  // cmd: dat <link> downloadDir
-  var st = spawn(t, dat + ' 5hz25io80t0m1ttr332awpslmlfn1mc5bf1z8lvhh34a9r1ob3 ' + downloadDir)
+  // cmd: dat download <link> downloadDir
+  var st = spawn(t, dat + ' download 5hz25io80t0m1ttr332awpslmlfn1mc5bf1z8lvhh34a9r1ob3 ' + downloadDir)
   st.stdout.match(function (output) {
     var downloading = output.indexOf('Waiting for connections') > -1
     if (!downloading) return false
@@ -27,8 +27,8 @@ test('starts looking for peers with correct hash', function (t) {
 })
 
 test('accepts dat-desktop links', function (t) {
-  // cmd: dat dat://<link> downloadDir
-  var st = spawn(t, dat + ' dat://ki0dg8b5ukc7oy5gcdhx4nr27ayncu4gdart3y1zf1b8p9sk48 ' + downloadDir)
+  // cmd: dat download dat://<link> downloadDir
+  var st = spawn(t, dat + ' download dat://ki0dg8b5ukc7oy5gcdhx4nr27ayncu4gdart3y1zf1b8p9sk48 ' + downloadDir)
   st.stdout.match(function (output) {
     var downloading = output.indexOf('Waiting for connections') > -1
     if (!downloading) return false
@@ -40,9 +40,9 @@ test('accepts dat-desktop links', function (t) {
 })
 
 test('errors with invalid hash', function (t) {
-  // cmd: dat pizza downloadDir
+  // cmd: dat download pizza downloadDir
   rimraf.sync(path.join(downloadDir, '.dat'))
-  var st = spawn(t, dat + ' pizza ' + downloadDir)
+  var st = spawn(t, dat + ' download pizza ' + downloadDir)
   st.stderr.match(function (output) {
     var gotError = output.indexOf('Invalid Dat Link') > -1
     t.ok(gotError, 'got error')
@@ -52,9 +52,9 @@ test('errors with invalid hash', function (t) {
 })
 
 test('makes directory if does not exist', function (t) {
-  // cmd: dat pizza downloadDir
+  // cmd: dat download pizza downloadDir
   rimraf.sync(path.join(downloadDir))
-  var st = spawn(t, dat + ' 5hz25io80t0m1ttr332awpslmlfn1mc5bf1z8lvhh34a9r1ob3 ' + downloadDir)
+  var st = spawn(t, dat + ' download 5hz25io80t0m1ttr332awpslmlfn1mc5bf1z8lvhh34a9r1ob3 ' + downloadDir)
   st.stdout.match(function (output) {
     var downloading = output.indexOf('Waiting for connections') > -1
     if (!downloading) return false
@@ -66,9 +66,9 @@ test('makes directory if does not exist', function (t) {
 })
 
 test('errors on new download without directory', function (t) {
-  // cmd: dat <link>
+  // cmd: dat download <link>
   rimraf.sync(path.join(process.cwd(), '.dat')) // in case we have a .dat folder here
-  var st = spawn(t, dat + ' 5hz25io80t0m1ttr332awpslmlfn1mc5bf1z8lvhh34a9r1ob3')
+  var st = spawn(t, dat + ' download 5hz25io80t0m1ttr332awpslmlfn1mc5bf1z8lvhh34a9r1ob3')
   st.stderr.match(function (output) {
     var gotError = output.indexOf('Directory required') > -1
     t.ok(gotError, 'got error')
@@ -78,10 +78,10 @@ test('errors on new download without directory', function (t) {
 })
 
 test('download resumes with same key', function (t) {
-  // cmd: dat <link> . (twice)
+  // cmd: dat download <link> . (twice)
   var tmpdir = newTestFolder()
   var link = null
-  var share = spawn(t, dat + ' ' + fixtures, {end: false})
+  var share = spawn(t, dat + ' share ' + fixtures, {end: false})
   share.stderr.empty()
   share.stdout.match(function (output) {
     var matches = matchDatLink(output)
@@ -93,7 +93,7 @@ test('download resumes with same key', function (t) {
 
   function startDownloader () {
     // cmd: dat <link> tmpdir
-    var downloader = spawn(t, dat + ' ' + link + ' ' + tmpdir, {end: false})
+    var downloader = spawn(t, dat + ' download ' + link + ' ' + tmpdir, {end: false})
     downloader.stdout.match(function (output) {
       var contains = output.indexOf('Downloaded') > -1
       if (!contains || !share) return false
@@ -106,7 +106,7 @@ test('download resumes with same key', function (t) {
 
   function spawnDownloaderTwo () {
     // cmd: dat <link> .
-    var downloaderTwo = spawn(t, dat + ' ' + link + ' ' + tmpdir, {end: false})
+    var downloaderTwo = spawn(t, dat + ' download ' + link + ' ' + tmpdir, {end: false})
     downloaderTwo.stdout.match(function (output) {
       var contains = output.indexOf('Downloaded') > -1
       if (!contains || !share) return false
@@ -120,10 +120,10 @@ test('download resumes with same key', function (t) {
 })
 
 test('download twice to same dir errors', function (t) {
-  // cmd: dat <link> . (twice)
+  // cmd: dat download <link> . (twice)
   var tmpdir = newTestFolder()
   var link = null
-  var share = spawn(t, dat + ' ' + fixtures, {end: false})
+  var share = spawn(t, dat + ' share ' + fixtures, {end: false})
   share.stderr.empty()
   share.stdout.match(function (output) {
     var matches = matchDatLink(output)
@@ -134,8 +134,8 @@ test('download twice to same dir errors', function (t) {
   }, 'share started')
 
   function startDownloader () {
-    // cmd: dat <link> tmpdir
-    var downloader = spawn(t, dat + ' ' + link + ' ' + tmpdir, {end: false})
+    // cmd: dat download <link> tmpdir
+    var downloader = spawn(t, dat + ' download ' + link + ' ' + tmpdir, {end: false})
     downloader.stdout.match(function (output) {
       var contains = output.indexOf('Downloaded') > -1
       if (!contains || !share) return false
@@ -148,7 +148,7 @@ test('download twice to same dir errors', function (t) {
 
   function spawnDownloaderTwo () {
     // cmd: dat <link> .
-    var downloaderTwo = spawn(t, dat + ' 5hz25io80t0m1ttr332awpslmlfn1mc5bf1z8lvhh34a9r1ob3 ' + tmpdir, {end: false})
+    var downloaderTwo = spawn(t, dat + ' download 5hz25io80t0m1ttr332awpslmlfn1mc5bf1z8lvhh34a9r1ob3 ' + tmpdir, {end: false})
     downloaderTwo.stderr.match(function (output) {
       var contains = output.indexOf('Another Dat was already downloaded here') > -1
       if (!contains || !share) return false
@@ -167,7 +167,7 @@ test('download transfers files', function (t) {
   rimraf.sync(path.join(process.cwd(), '.dat')) // this keeps ending up here
   rimraf.sync(path.join(fixtures, '.dat'))
 
-  var share = spawn(t, dat + ' ' + fixtures, {end: false})
+  var share = spawn(t, dat + ' share ' + fixtures, {end: false})
   share.stderr.empty()
   share.stdout.match(function (output) {
     var matches = matchDatLink(output)
@@ -178,7 +178,7 @@ test('download transfers files', function (t) {
   }, 'share started')
 
   function startDownloader () {
-    var downloader = spawn(t, dat + ' ' + link + ' ' + tmpdir, {end: false})
+    var downloader = spawn(t, dat + ' download ' + link + ' ' + tmpdir, {end: false})
     downloader.stdout.match(function (output) {
       var contains = output.indexOf('Downloaded') > -1
       if (!contains || !share) return false

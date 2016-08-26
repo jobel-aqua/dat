@@ -1,3 +1,4 @@
+var fs = require('fs')
 var chalk = require('chalk')
 var prettyBytes = require('pretty-bytes')
 var Dat = require('dat-js')
@@ -6,6 +7,11 @@ var speedometer = require('speedometer')
 var ui = require('../lib/ui')
 
 module.exports = function (args) {
+  args.dir = args._[0] ? args._[0] : process.cwd()
+  try {
+    if (!fs.statSync(args.dir).isDirectory()) return onerror('Directory does not exist.')
+  } catch (e) { return onerror('Directory does not exist.') }
+
   var dat = Dat(args)
   var log = logger(args)
 
