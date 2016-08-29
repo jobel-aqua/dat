@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 
-var args = require('minimist')(process.argv.splice(2), {
+var spawn = require('child_process').spawn
+
+var args = process.argv.slice(0)
+var parsedArgs = require('minimist')(process.argv.splice(2), {
   alias: {p: 'port', q: 'quiet', v: 'version'},
   boolean: ['snapshot', 'exit', 'list', 'quiet', 'version', 'utp'],
   default: {
@@ -11,37 +14,60 @@ var args = require('minimist')(process.argv.splice(2), {
 process.title = 'dat'
 
 // set debug before requiring other modules
-if (args.debug) {
-  var debug = args.debug
-  if (typeof args.debug === 'boolean') debug = '*' // default
-  process.env.DEBUG = debug
+if (parsedArgs.debug) {
+  var debugArgs = parsedArgs.debug
+  if (typeof parsedArgs.debug === 'boolean') debugArgs = '*' // default
+  process.env.DEBUG = debugArgs
 }
+var debug = require('debug')('dat') // require this after setting process.env.DEBUG
 
-if (args.version) {
+if (parsedArgs.version) {
   var pkg = require('../package.json')
   console.log(pkg.version)
   process.exit(0)
 }
 
-args.logspeed = +args.logspeed
-if (isNaN(args.logspeed)) args.logspeed = 200
+parsedArgs.logspeed = +parsedArgs.logspeed
+if (isNaN(parsedArgs.logspeed)) parsedArgs.logspeed = 200
 
-var command = args._.shift() // remove command arg so extensions can parse args like normal
+var command = parsedArgs._.shift() // remove command arg so extensions can parse parsedArgs like normal
 if (!command) require('../usage')('root.txt')
 else run()
 
 function run () {
-  if (command === 'share') require('../commands/share')(args)
-  else if (command === 'download') require('../commands/download')(args)
+  debug(`Running Dat ${command}`)
+  if (command === 'share') require('../commands/share')(parsedArgs)
+  else if (command === 'download') require('../commands/download')(parsedArgs)
   else {
-    try {
-      require(`dat-${command}`)(args)
-    } catch (e) {
-      if (e.code !== 'MODULE_NOT_FOUND' || e.message.indexOf(`dat-${command}`) === -1) {
-        console.error('Extension Error:')
-        return onerror(e)
+    var extensionArgs = args.splice(3) // remove command arg
+    tryExecExtension(function (err) {
+      if (err) return onerror(err)
+    })
+
+    function tryExecExtension (cb) {
+      var extension = spawn(`dat-${command}`, extensionArgs)
+      debug(`Running executable extension: dat-${command} with args [${extensionArgs}]`)
+      extension.stdout.pipe(process.stdout)
+      extension.stderr.pipe(process.stderr)
+      extension.on('error', function (err) {
+        var isMissingExt = (err.code === 'ENOENT' && err.message.indexOf(`spawn dat-${command} ENOENT`) > -1)
+        if (!isMissingExt) return cb(err)
+        extension.on('close', tryLocalExtension)
+        extension.kill()
+      })
+      extension.on('exit', function (code) {
+        debug('Extension exited with code: ' + code)
+      })
+    }
+
+    function tryLocalExtension () {
+      try {
+        require(`dat-${command}`)(extensionArgs)
+      } catch (err) {
+        var isMissingExt = (err.code === 'MODULE_NOT_FOUND' && err.message.indexOf(`dat-${command}`) > -1)
+        if (!isMissingExt) return onerror(err)
+        return onerror(`dat-${command} extension not found. Make sure you have dat-${command} installed and it is executable.`)
       }
-      onerror(`dat extension ${command} not found. Make sure you have dat-${command} installed.`)
     }
   }
 }
